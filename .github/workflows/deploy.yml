@@ -1,0 +1,15 @@
+# Собирает Shiny-приложение через shinylive и публикует его на GitHub Pages
+name: Deploy app to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  shinylive:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: posit-dev/r-shinylive/.github/workflows/deploy-app.yaml@actions-v1
