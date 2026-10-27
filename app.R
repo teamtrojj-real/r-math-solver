@@ -20,12 +20,13 @@ vec2s <- function(x) paste0("c(", paste(n2s(x), collapse = ", "), ")")
 fm <- function(x, d = 2) formatC(x, format = "f", digits = d, big.mark = " ")
 rub <- function(x) paste(fm(x), "₽")
 pct <- function(x, d = 2) paste0(fm(x * 100, d), "%")
+fp <- function(p) if (p < 1e-4) "< 0.0001" else fm(p, 4)   # p-value
 
 # подстановка значений в шаблон кода: {name} -> value
-tpl <- function(s, ...) {
+tpl <- function(.tmpl, ...) {
   vals <- list(...)
-  for (n in names(vals)) s <- gsub(paste0("{", n, "}"), vals[[n]], s, fixed = TRUE)
-  s
+  for (n in names(vals)) .tmpl <- gsub(paste0("{", n, "}"), vals[[n]], .tmpl, fixed = TRUE)
+  .tmpl
 }
 
 # разбор списка чисел из текстового поля
@@ -569,9 +570,9 @@ p <- tt$p.value
 n <- length(x)",
       x = vec2s(parse_nums(v("x"), 3)), mu = n2s(v("mu")), a = v("a")),
     function(e) tagList(
-      res_table("Среднее выборки" = fm(mean(e$x), 4), "t-статистика" = fm(e$t_stat, 4), "p-value" = fm(e$p, 4)),
-      if (e$p < e$alpha) verdict(paste0("p = ", fm(e$p, 4), " &lt; α — гипотеза H₀ <b>отвергается</b>: среднее отличается от ", e$mu0, "."), FALSE)
-      else verdict(paste0("p = ", fm(e$p, 4), " ≥ α — <b>нет оснований отвергнуть</b> H₀: среднее можно считать равным ", e$mu0, "."))),
+      res_table("Среднее выборки" = fm(mean(e$x), 4), "t-статистика" = fm(e$t_stat, 4), "p-value" = fp(e$p)),
+      if (e$p < e$alpha) verdict(paste0("p = ", fp(e$p), " &lt; α — гипотеза H₀ <b>отвергается</b>: среднее отличается от ", e$mu0, "."), FALSE)
+      else verdict(paste0("p = ", fp(e$p), " ≥ α — <b>нет оснований отвергнуть</b> H₀: среднее можно считать равным ", e$mu0, "."))),
     function(e) {
       nice_par(); df <- e$n - 1; lim <- max(4, abs(e$t_stat) + 1); xs <- seq(-lim, lim, length.out = 400)
       tc <- qt(1 - e$alpha / 2, df)
@@ -597,7 +598,7 @@ p <- tt$p.value",
       x = vec2s(parse_nums(v("x"), 2)), y = vec2s(parse_nums(v("y"), 2)), a = v("a")),
     function(e) tagList(
       res_table("Среднее 1" = fm(mean(e$x), 3), "Среднее 2" = fm(mean(e$y), 3),
-                "t-статистика" = fm(unname(e$tt$statistic), 4), "p-value" = fm(e$p, 4)),
+                "t-статистика" = fm(unname(e$tt$statistic), 4), "p-value" = fp(e$p)),
       if (e$p < e$alpha) verdict("p &lt; α — средние <b>статистически различаются</b>.", FALSE)
       else verdict("p ≥ α — <b>значимых различий</b> между средними нет.")),
     function(e) {
@@ -623,7 +624,7 @@ p <- ct$p.value",
       a <- abs(e$r)
       s <- if (a < .1) "практически отсутствует" else if (a < .3) "слабая" else if (a < .5) "умеренная" else
            if (a < .7) "заметная" else if (a < .9) "высокая" else "весьма высокая"
-      tagList(res_table("r" = fm(e$r, 4), "p-value" = fm(e$p, 5), "Сила связи" = s,
+      tagList(res_table("r" = fm(e$r, 4), "p-value" = fp(e$p), "Сила связи" = s,
                         "Направление" = if (e$r >= 0) "прямая" else "обратная"),
         if (e$p < 0.05) verdict("p &lt; 0,05 — корреляция <b>значима</b>.") else verdict("p ≥ 0,05 — корреляция <b>незначима</b>.", FALSE))
     },
@@ -785,6 +786,7 @@ body { background: var(--bg); }
 ui <- navbarPage(
   title = "🐱 R Math Solver",
   id = "nav",
+  collapsible = TRUE,
   windowTitle = "R Math Solver — решатель задач на R",
   theme = bs_theme(version = 5, primary = "#13315c", secondary = "#e0a800"),
   header = tags$head(tags$style(HTML(css))),
